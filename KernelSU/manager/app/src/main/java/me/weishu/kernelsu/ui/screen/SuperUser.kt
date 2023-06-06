@@ -1,9 +1,11 @@
 package me.weishu.kernelsu.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -12,12 +14,14 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -27,15 +31,11 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.ConfirmDialog
-import me.weishu.kernelsu.ui.component.ConfirmResult
 import me.weishu.kernelsu.ui.component.SearchAppBar
 import me.weishu.kernelsu.ui.screen.destinations.AppProfileScreenDestination
-import me.weishu.kernelsu.ui.util.LocalDialogHost
-import me.weishu.kernelsu.ui.util.LocalSnackbarHost
 import me.weishu.kernelsu.ui.viewmodel.SuperUserViewModel
-import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class)
 @Destination
 @Composable
 fun SuperUserScreen(navigator: DestinationsNavigator) {
@@ -107,18 +107,10 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
                 .padding(innerPadding)
                 .pullRefresh(refreshState)
         ) {
-            val failMessage = stringResource(R.string.superuser_failed_to_grant_root)
-
             LazyColumn(Modifier.fillMaxSize()) {
                 items(viewModel.appList, key = { it.packageName + it.uid }) { app ->
                     AppItem(app) {
-                        navigator.navigate(
-                            AppProfileScreenDestination(
-                                packageName = app.packageName,
-                                grantRoot = app.onAllowList,
-                                label = app.label, icon = app.icon
-                            )
-                        )
+                        navigator.navigate(AppProfileScreenDestination(app))
                     }
 
                 }
@@ -133,7 +125,7 @@ fun SuperUserScreen(navigator: DestinationsNavigator) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AppItem(
     app: SuperUserViewModel.AppInfo,
@@ -141,12 +133,28 @@ private fun AppItem(
 ) {
     ListItem(
         modifier = Modifier.clickable(onClick = onClickListener),
-        headlineText = { Text(app.label) },
-        supportingText = { Text(app.packageName) },
+        headlineContent = { Text(app.label) },
+        supportingContent = {
+            Column {
+                Text(app.packageName)
+                FlowRow {
+                    if (app.allowSu) {
+                        LabelText(label = "ROOT")
+                    } else {
+                        if (Natives.uidShouldUmount(app.uid)) {
+                            LabelText(label = "UMOUNT")
+                        }
+                    }
+                    if (app.hasCustomProfile) {
+                        LabelText(label = "CUSTOM")
+                    }
+                }
+            }
+        },
         leadingContent = {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(app.icon)
+                    .data(app.packageInfo)
                     .crossfade(true)
                     .build(),
                 contentDescription = app.label,
@@ -157,4 +165,25 @@ private fun AppItem(
             )
         },
     )
+}
+
+@Composable
+fun LabelText(label: String) {
+    Box(
+        modifier = Modifier
+            .padding(top = 4.dp, end = 4.dp)
+            .background(
+                Color.Black,
+                shape = RoundedCornerShape(4.dp)
+            )
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(vertical = 2.dp, horizontal = 5.dp),
+            style = TextStyle(
+                fontSize = 8.sp,
+                color = Color.White,
+            )
+        )
+    }
 }

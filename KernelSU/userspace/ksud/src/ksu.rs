@@ -58,11 +58,11 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
-fn set_identity(uid: u32) {
+fn set_identity(uid: u32, gid: u32) {
     #[cfg(any(target_os = "linux", target_os = "android"))]
     unsafe {
         libc::seteuid(uid);
-        libc::setresgid(uid, uid, uid);
+        libc::setresgid(gid, gid, gid);
         libc::setresuid(uid, uid, uid);
     }
 }
@@ -168,7 +168,9 @@ pub fn root_shell() -> Result<()> {
         free_idx += 1;
     }
 
-    let mut uid = 0; // default uid = 0(root)
+    // use current uid if no user specified, these has been done in kernel!
+    let mut uid = unsafe { libc::getuid() };
+    let gid = unsafe { libc::getgid() };
     if free_idx < matches.free.len() {
         let name = &matches.free[free_idx];
         uid = unsafe {
@@ -229,15 +231,12 @@ pub fn root_shell() -> Result<()> {
 
             // switch to global mount namespace
             #[cfg(any(target_os = "linux", target_os = "android"))]
-            let global_namespace_enable =
-                std::fs::read_to_string("/sys/module/ksu/parameters/global_namespace_enable")
-                    .unwrap_or("0".to_string());
-            if global_namespace_enable.trim() == "1" || mount_master {
+            if mount_master {
                 let _ = utils::switch_mnt_ns(1);
                 let _ = utils::unshare_mnt_ns();
             }
 
-            set_identity(uid);
+            set_identity(uid, gid);
 
             std::result::Result::Ok(())
         })

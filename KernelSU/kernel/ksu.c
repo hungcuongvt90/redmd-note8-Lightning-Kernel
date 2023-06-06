@@ -1,6 +1,5 @@
 #include "linux/fs.h"
 #include "linux/module.h"
-#include "linux/moduleparam.h"
 #include "linux/workqueue.h"
 
 #include "allowlist.h"
@@ -9,9 +8,6 @@
 #include "klog.h" // IWYU pragma: keep
 #include "ksu.h"
 #include "uid_observer.h"
-
-int global_namespace_enable;
-module_param(global_namespace_enable, int, S_IRUSR | S_IWUSR);
 
 static struct workqueue_struct *ksu_workqueue;
 
@@ -61,7 +57,7 @@ int __init kernelsu_init(void)
 	ksu_enable_sucompat();
 	ksu_enable_ksud();
 #else
-#warning("KPROBES is disabled, KernelSU may not work, please check https://kernelsu.org/guide/how-to-integrate-for-non-gki.html")
+	pr_alert("KPROBES is disabled, KernelSU may not work, please check https://kernelsu.org/guide/how-to-integrate-for-non-gki.html");
 #endif
 
 	return 0;
