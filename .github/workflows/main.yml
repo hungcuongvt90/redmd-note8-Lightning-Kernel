@@ -38,8 +38,6 @@ jobs:
         sudo apt install gcc-arm-linux-gnueabi -y
         sudo apt install binutils make python3 libssl-dev build-essential bc  bison flex unzip libssl-dev ca-certificates xz-utils mkbootimg cpio device-tree-compiler git git-lfs -y
         git clone https://codeberg.org/Mandi-Sa/clang --dept=1 -b amd64-kernel-arm
-        git clone https://github.com/lateautumn233/AnyKernel3 -b master --depth=1
-        rm -rf AnyKernel3/.git
     
     - name: GetTime
       id: get_time
